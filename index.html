@@ -1,1295 +1,347 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The H-1B Tax: What Your Visa Really Costs</title>
-    <meta name="description" content="An interactive data story analyzing 2.4 million H-1B visa applications to reveal hidden costs">
-    
-    <!-- D3.js for visualizations -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <!-- TopoJSON for map data -->
-    <script src="https://cdn.jsdelivr.net/npm/topojson@3"></script>
-    <!-- Scrollama for scrollytelling -->
-    <script src="https://unpkg.com/intersection-observer@0.12.0/intersection-observer.js"></script>
-    <script src="https://unpkg.com/scrollama"></script>
-    
-    <style>
-        /* ===== WEEK 1: IMPROVED STYLING ===== */
-        
-        :root {
-            --primary-blue: #4facfe;
-            --primary-purple: #00f2fe;
-            --accent-red: #ff6b6b;
-            --accent-green: #51cf66;
-            --bg-dark: #0a0e27;
-            --bg-darker: #05070f;
-            --text-primary: #ffffff;
-            --text-secondary: #a0aec0;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: var(--bg-darker);
-            color: var(--text-primary);
-            overflow-x: hidden;
-            line-height: 1.6;
-        }
-
-        /* ===== INTRO SECTION - ENHANCED ===== */
-        .intro {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-purple) 100%);
-            text-align: center;
-            padding: 40px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Animated background particles */
-        .intro::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
-            animation: float 20s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
-
-        .intro h1 {
-            font-size: clamp(2.5em, 8vw, 5em);
-            font-weight: 900;
-            margin-bottom: 20px;
-            animation: fadeInUp 1s;
-            position: relative;
-            z-index: 1;
-            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .intro .subtitle {
-            font-size: clamp(1.2em, 3vw, 1.8em);
-            max-width: 800px;
-            opacity: 0.95;
-            animation: fadeInUp 1s 0.3s both;
-            position: relative;
-            z-index: 1;
-            font-weight: 300;
-            margin-bottom: 40px;
-        }
-
-        .intro .stat-preview {
-            font-size: clamp(1em, 2.5vw, 1.3em);
-            animation: fadeInUp 1s 0.6s both;
-            position: relative;
-            z-index: 1;
-            padding: 20px 40px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50px;
-            backdrop-filter: blur(10px);
-        }
-
-        .scroll-indicator {
-            position: absolute;
-            bottom: 40px;
-            animation: bounce 2s infinite;
-            font-size: 2.5em;
-            opacity: 0.8;
-            z-index: 1;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(40px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-25px); }
-            60% { transform: translateY(-12px); }
-        }
-
-        /* ===== SCROLLYTELLING SECTION - ENHANCED ===== */
-        #scrolly {
-            position: relative;
-            padding: 0;
-            background: var(--bg-dark);
-        }
-
-        .scroll-section {
-            position: relative;
-            padding: 0;
-        }
-
-        article {
-            position: relative;
-            padding: 0;
-            width: 45%;
-            margin: 0 0 0 3%;
-        }
-
-        .step {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            padding: 60px 0;
-        }
-
-        .step-content {
-            background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
-            padding: 50px;
-            border-radius: 20px;
-            border-left: 6px solid var(--primary-blue);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .step-content:hover {
-            transform: translateX(10px);
-            box-shadow: 0 12px 48px rgba(79, 172, 254, 0.2);
-        }
-
-        .step-content h2 {
-            font-size: clamp(1.8em, 4vw, 2.8em);
-            margin-bottom: 25px;
-            color: var(--primary-blue);
-            font-weight: 800;
-        }
-
-        .step-content p {
-            font-size: clamp(1em, 2vw, 1.3em);
-            line-height: 1.8;
-            margin-bottom: 20px;
-            color: var(--text-secondary);
-        }
-
-        .step-content .stat {
-            font-size: clamp(2.5em, 6vw, 4em);
-            font-weight: 900;
-            color: var(--accent-red);
-            margin: 30px 0;
-            display: block;
-            text-shadow: 0 4px 20px rgba(255, 107, 107, 0.5);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        .step-content .annotation {
-            font-size: 0.9em;
-            color: var(--text-secondary);
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            margin-top: 20px;
-            border-left: 3px solid var(--accent-green);
-        }
-
-        figure {
-            position: -webkit-sticky;
-            position: sticky;
-            top: 0;
-            width: 50%;
-            height: 100vh;
-            margin: 0;
-            float: right;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--bg-darker);
-        }
-
-        #vis {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .vis-container {
-            width: 90%;
-            height: 90%;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .vis-container.active {
-            display: flex;
-            animation: fadeInScale 0.6s ease-out;
-        }
-
-        @keyframes fadeInScale {
-            from {
-                opacity: 0;
-                transform: scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        /* ===== LOTTERY VISUALIZATION - ENHANCED ===== */
-        .lottery-grid {
-            display: grid;
-            grid-template-columns: repeat(10, 1fr);
-            gap: 12px;
-            max-width: 550px;
-        }
-
-        .lottery-square {
-            aspect-ratio: 1;
-            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2em;
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            cursor: pointer;
-            border: 2px solid transparent;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .lottery-square:hover {
-            transform: translateY(-5px);
-            border-color: var(--primary-blue);
-            box-shadow: 0 8px 24px rgba(79, 172, 254, 0.3);
-        }
-
-        .lottery-square.rejected {
-            background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%);
-            animation: shake 0.5s;
-        }
-
-        .lottery-square.selected {
-            background: linear-gradient(135deg, #51cf66 0%, #2f9e44 100%);
-            animation: celebrate 0.8s;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-
-        @keyframes celebrate {
-            0% { transform: scale(1) rotate(0deg); }
-            50% { transform: scale(1.2) rotate(180deg); }
-            100% { transform: scale(1) rotate(360deg); }
-        }
-
-        /* ===== WEEK 2: US MAP VISUALIZATION ===== */
-        .map-container {
-            width: 100%;
-            max-width: 650px;
-        }
-
-        .state {
-            stroke: #2d3748;
-            stroke-width: 1.5;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-
-        .state:hover {
-            stroke: var(--primary-blue);
-            stroke-width: 3;
-            filter: brightness(1.2);
-        }
-
-        .state-label {
-            fill: white;
-            font-size: 12px;
-            font-weight: bold;
-            pointer-events: none;
-            text-anchor: middle;
-        }
-
-        .map-legend {
-            display: flex;
-            gap: 20px;
-            margin-top: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9em;
-        }
-
-        .legend-color {
-            width: 30px;
-            height: 20px;
-            border-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        /* ===== ENHANCED CHARTS ===== */
-        .chart-title {
-            font-size: 1.5em;
-            color: var(--primary-blue);
-            margin-bottom: 25px;
-            text-align: center;
-            font-weight: 700;
-        }
-
-        .bar {
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .bar:hover {
-            opacity: 0.8;
-            filter: brightness(1.2);
-        }
-
-        .chart-annotation {
-            font-size: 14px;
-            fill: var(--text-secondary);
-            text-anchor: middle;
-        }
-
-        .axis {
-            color: var(--text-secondary);
-        }
-
-        .axis text {
-            fill: var(--text-secondary);
-        }
-
-        .axis line,
-        .axis path {
-            stroke: rgba(255, 255, 255, 0.1);
-        }
-
-        /* ===== CALCULATOR SECTION - ENHANCED ===== */
-        .calculator-section {
-            min-height: 100vh;
-            background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
-            padding: 100px 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .calculator-container {
-            max-width: 900px;
-            background: linear-gradient(135deg, rgba(79, 172, 254, 0.05) 0%, rgba(0, 242, 254, 0.05) 100%);
-            padding: 70px;
-            border-radius: 30px;
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(79, 172, 254, 0.2);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
-
-        .calculator-container h2 {
-            font-size: clamp(2em, 4vw, 3em);
-            margin-bottom: 40px;
-            text-align: center;
-            color: var(--primary-blue);
-            font-weight: 800;
-        }
-
-        .form-group {
-            margin-bottom: 30px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 12px;
-            font-size: 1.1em;
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-
-        .form-group select,
-        .form-group input {
-            width: 100%;
-            padding: 18px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px solid rgba(79, 172, 254, 0.2);
-            border-radius: 12px;
-            color: var(--text-primary);
-            font-size: 1.1em;
-            transition: all 0.3s;
-        }
-
-        .form-group select:focus,
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--primary-blue);
-            background: rgba(79, 172, 254, 0.1);
-            box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.1);
-        }
-
-        .calc-button {
-            width: 100%;
-            padding: 22px;
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-purple) 100%);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-size: 1.3em;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 8px 24px rgba(79, 172, 254, 0.3);
-        }
-
-        .calc-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 36px rgba(79, 172, 254, 0.5);
-        }
-
-        .calc-button:active {
-            transform: translateY(-1px);
-        }
-
-        .result-box {
-            margin-top: 50px;
-            padding: 50px;
-            background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(201, 42, 42, 0.1) 100%);
-            border: 3px solid var(--accent-red);
-            border-radius: 20px;
-            text-align: center;
-            display: none;
-        }
-
-        .result-box.show {
-            display: block;
-            animation: slideUpBounce 0.6s ease-out;
-        }
-
-        @keyframes slideUpBounce {
-            0% {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            60% {
-                transform: translateY(-10px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .result-box h3 {
-            color: var(--accent-red);
-            font-size: 1.8em;
-            margin-bottom: 25px;
-            font-weight: 700;
-        }
-
-        .result-value {
-            font-size: clamp(3em, 8vw, 5em);
-            font-weight: 900;
-            color: var(--accent-red);
-            margin: 30px 0;
-            text-shadow: 0 4px 20px rgba(255, 107, 107, 0.5);
-        }
-
-        .result-breakdown {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-
-        .breakdown-item {
-            background: rgba(255, 255, 255, 0.03);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .breakdown-item h4 {
-            font-size: 0.9em;
-            color: var(--text-secondary);
-            margin-bottom: 10px;
-        }
-
-        .breakdown-item .value {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: var(--accent-red);
-        }
-
-        /* ===== OUTRO - ENHANCED ===== */
-        .outro {
-            min-height: 100vh;
-            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 100px 40px;
-        }
-
-        .outro h2 {
-            font-size: clamp(2.5em, 5vw, 4em);
-            margin-bottom: 40px;
-            color: var(--primary-blue);
-            font-weight: 800;
-        }
-
-        .outro p {
-            font-size: clamp(1.1em, 2.5vw, 1.5em);
-            max-width: 800px;
-            line-height: 1.9;
-            margin-bottom: 25px;
-            color: var(--text-secondary);
-        }
-
-        .cta-button {
-            margin-top: 40px;
-            padding: 20px 50px;
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-purple) 100%);
-            border: none;
-            border-radius: 50px;
-            color: white;
-            font-size: 1.2em;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
-            box-shadow: 0 8px 24px rgba(79, 172, 254, 0.3);
-        }
-
-        .cta-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 36px rgba(79, 172, 254, 0.5);
-        }
-
-        .credit {
-            margin-top: 80px;
-            padding-top: 50px;
-            border-top: 2px solid rgba(255, 255, 255, 0.1);
-            color: var(--text-secondary);
-            font-size: 1em;
-        }
-
-        .data-source {
-            margin-top: 30px;
-            font-size: 0.9em;
-            color: #718096;
-        }
-
-        /* ===== WEEK 3: RESPONSIVE DESIGN ===== */
-        @media (max-width: 1024px) {
-            article {
-                width: 50%;
-                margin: 0 0 0 2%;
-            }
-
-            figure {
-                width: 46%;
-            }
-        }
-
-        @media (max-width: 768px) {
-            article {
-                width: 100%;
-                margin: 0;
-                padding: 20px;
-            }
-
-            figure {
-                width: 100%;
-                position: relative;
-                height: 70vh;
-            }
-
-            .intro h1 {
-                font-size: 2.5em;
-            }
-
-            .step-content {
-                padding: 30px;
-            }
-
-            .step-content h2 {
-                font-size: 1.8em;
-            }
-
-            .calculator-container {
-                padding: 40px 30px;
-            }
-
-            .lottery-grid {
-                grid-template-columns: repeat(5, 1fr);
-                gap: 8px;
-                max-width: 350px;
-            }
-
-            .lottery-square {
-                font-size: 1.5em;
-            }
-        }
-
-        /* ===== ACCESSIBILITY ===== */
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border-width: 0;
-        }
-
-        /* Focus styles for keyboard navigation */
-        *:focus-visible {
-            outline: 3px solid var(--primary-blue);
-            outline-offset: 3px;
-        }
-
-        /* Reduce motion for accessibility */
-        @media (prefers-reduced-motion: reduce) {
-            *,
-            *::before,
-            *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The H-1B Tax — A Visual Investigation</title>
+
+<!-- Libraries -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://d3js.org/topojson.v3.min.js"></script>
+<script src="https://unpkg.com/scrollama"></script>
+
+<style>
+/* =====================
+   DESIGN SYSTEM
+===================== */
+:root {
+  --bg: #0b0d12;
+  --panel: #12151c;
+  --text: #eaeaf0;
+  --muted: #9aa0b4;
+  --accent: #6c8cff;
+  --danger: #ff6b6b;
+  --success: #4ade80;
+  --radius: 16px;
+  --ease: cubic-bezier(.4,0,.2,1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: radial-gradient(1200px 800px at 50% -200px, #1b2140 0%, var(--bg) 60%);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* =====================
+   INTRO
+===================== */
+.intro {
+  height: 100vh;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  padding: 40px;
+}
+
+.intro h1 {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.intro p {
+  font-size: 1.3rem;
+  color: var(--muted);
+  margin-top: 20px;
+}
+
+.scroll-indicator {
+  margin-top: 60px;
+  font-size: 2rem;
+  opacity: 0.6;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  50% { transform: translateY(12px); }
+}
+
+/* =====================
+   SCROLLYTELLING
+===================== */
+#scrolly {
+  display: flex;
+  max-width: 1400px;
+  margin: auto;
+}
+
+article {
+  width: 42%;
+  padding-left: 5%;
+}
+
+figure {
+  width: 50%;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.step {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.step-content {
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--radius);
+  padding: 40px;
+  backdrop-filter: blur(12px);
+}
+
+.step-content h2 {
+  font-size: 2.2rem;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.step-content p {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.stat {
+  display: block;
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--danger);
+  margin: 20px 0;
+}
+
+/* =====================
+   VISUALS
+===================== */
+.vis {
+  width: 90%;
+  height: 90%;
+  display: none;
+}
+
+.vis.active {
+  display: block;
+  animation: fade 0.6s var(--ease);
+}
+
+@keyframes fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =====================
+   RESPONSIVE
+===================== */
+@media (max-width: 900px) {
+  #scrolly { flex-direction: column; }
+  article, figure { width: 100%; }
+  figure { position: relative; height: 60vh; }
+}
+</style>
 </head>
+
 <body>
-    <!-- INTRO -->
-    <section class="intro" role="banner">
-        <h1>The H-1B Tax</h1>
-        <p class="subtitle">You won the lottery. Now pay the hidden bill.</p>
-        <p class="stat-preview">Analyzing 2.4 million visa applications</p>
-        <div class="scroll-indicator" aria-label="Scroll down">↓</div>
-    </section>
 
-    <!-- SCROLLYTELLING SECTION -->
-    <section id="scrolly" role="main">
-        <div class="scroll-section">
-            <figure aria-label="Data visualizations">
-                <div id="vis">
-                    <!-- Viz 1: Lottery -->
-                    <div class="vis-container" id="vis-lottery">
-                        <h3 class="chart-title">The H-1B Lottery</h3>
-                        <div class="lottery-grid" id="lotteryGrid" role="application" aria-label="H-1B lottery simulator"></div>
-                        <p style="margin-top: 30px; color: var(--text-secondary);">Click any square to try your luck</p>
-                    </div>
+<section class="intro">
+  <h1>The H-1B Tax</h1>
+  <p>You won the lottery. Now pay the hidden bill.</p>
+  <div class="scroll-indicator">↓</div>
+</section>
 
-                    <!-- Viz 2: Wage Gap -->
-                    <div class="vis-container" id="vis-wage">
-                        <h3 class="chart-title">The Wage Gap</h3>
-                        <svg id="wageChart" width="650" height="450" role="img" aria-label="Wage comparison chart"></svg>
-                    </div>
+<section id="scrolly">
 
-                    <!-- Viz 3: US Map -->
-                    <div class="vis-container" id="vis-geo">
-                        <h3 class="chart-title">Where Are the Jobs?</h3>
-                        <div class="map-container">
-                            <svg id="usMap" width="650" height="500" role="img" aria-label="US map showing H-1B job concentration"></svg>
-                            <div class="map-legend" role="legend">
-                                <div class="legend-item">
-                                    <div class="legend-color" style="background: #ff6b6b;"></div>
-                                    <span>High (10%+)</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color" style="background: #fa5252;"></div>
-                                    <span>Medium (5-10%)</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color" style="background: #748ffc;"></div>
-                                    <span>Low (1-5%)</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color" style="background: #495057;"></div>
-                                    <span>Very Low (<1%)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+<figure>
+  <svg id="vis-lottery" class="vis" width="600" height="400" aria-label="H1B Lottery"></svg>
+  <svg id="vis-wage" class="vis" width="600" height="400"></svg>
+  <svg id="vis-map" class="vis" width="600" height="420"></svg>
+  <svg id="vis-control" class="vis" width="600" height="400"></svg>
+  <svg id="vis-clock" class="vis" width="600" height="400"></svg>
+  <svg id="vis-gc" class="vis" width="600" height="400"></svg>
+  <svg id="vis-total" class="vis" width="600" height="400"></svg>
+</figure>
 
-                    <!-- Viz 4: Employer -->
-                    <div class="vis-container" id="vis-employer">
-                        <h3 class="chart-title">Market Control</h3>
-                        <svg id="employerChart" width="650" height="500" role="img" aria-label="Employer concentration chart"></svg>
-                    </div>
-                </div>
-            </figure>
+<article>
 
-            <article>
-                <!-- Step 1 -->
-                <div class="step" data-step="1">
-                    <div class="step-content">
-                        <h2>The Lottery</h2>
-                        <p>In 2024, over 780,000 people registered for the H-1B lottery.</p>
-                        <p>Only 85,000 would be selected.</p>
-                        <span class="stat">11% chance</span>
-                        <p>But winning the lottery is just the beginning.</p>
-                        <div class="annotation">
-                            💡 The selection rate has dropped from 26% in 2020 to just 11% in 2024 due to increased demand.
-                        </div>
-                    </div>
-                </div>
+<div class="step"><div class="step-content">
+<h2>The Lottery</h2>
+<p>780,000 registrations. Only 85,000 visas.</p>
+<span class="stat">11%</span>
+<p>Winning is rare. But losing costs even more.</p>
+</div></div>
 
-                <!-- Step 2 -->
-                <div class="step" data-step="2">
-                    <div class="step-content">
-                        <h2>Tax #1: The Salary Tax</h2>
-                        <p>H-1B workers at staffing firms earn significantly less than those at product companies.</p>
-                        <span class="stat">$50,950</span>
-                        <p>per year less. Over 6 years, that's <strong>$305,700</strong> in lost wages.</p>
-                        <div class="annotation">
-                            📊 Based on median wages from 2.4 million DOL applications. Staffing firms pay the legal minimum; product companies pay market rates.
-                        </div>
-                    </div>
-                </div>
+<div class="step"><div class="step-content">
+<h2>Salary Suppression</h2>
+<span class="stat">$50,950</span>
+<p>Annual wage gap between staffing firms and product companies.</p>
+</div></div>
 
-                <!-- Step 3 -->
-                <div class="step" data-step="3">
-                    <div class="step-content">
-                        <h2>Tax #2: The Geographic Trap</h2>
-                        <p>H-1B jobs aren't evenly distributed across America.</p>
-                        <span class="stat">52%</span>
-                        <p>of all H-1B jobs are concentrated in just 5 states: California, Texas, New York, New Jersey, and Washington.</p>
-                        <div class="annotation">
-                            ⚠️ Get laid off outside these hubs? Your 60-day grace period becomes a deportation countdown with limited job options.
-                        </div>
-                    </div>
-                </div>
+<div class="step"><div class="step-content">
+<h2>Geographic Trap</h2>
+<span class="stat">52%</span>
+<p>H-1B jobs are concentrated in just five states.</p>
+</div></div>
 
-                <!-- Step 4 -->
-                <div class="step" data-step="4">
-                    <div class="step-content">
-                        <h2>Tax #3: The Employer Lock</h2>
-                        <p>A small number of companies control the H-1B market.</p>
-                        <span class="stat">30.6%</span>
-                        <p>of all applications come from just 100 employers.</p>
-                        <p>This creates "golden handcuffs" — you can't switch jobs without risking your visa status.</p>
-                        <div class="annotation">
-                            🔒 Changing jobs requires a new H-1B petition, creating friction that suppresses wages by 4.7% according to research.
-                        </div>
-                    </div>
-                </div>
-            </article>
-        </div>
-    </section>
+<div class="step"><div class="step-content">
+<h2>Employer Control</h2>
+<span class="stat">30.6%</span>
+<p>Applications controlled by just 100 companies.</p>
+</div></div>
 
-    <!-- CALCULATOR -->
-    <section class="calculator-section">
-        <div class="calculator-container">
-            <h2>Calculate Your H-1B Tax</h2>
-            
-            <form id="calcForm" onsubmit="calculate(event)">
-                <div class="form-group">
-                    <label for="empType">Employer Type</label>
-                    <select id="empType" required>
-                        <option value="">-- Select --</option>
-                        <option value="staffing">IT Staffing/Consulting</option>
-                        <option value="product">Product Company (FAANG)</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
+<div class="step"><div class="step-content">
+<h2>Layoff Risk</h2>
+<span class="stat">60 Days</span>
+<p>Lose your job. Lose your status.</p>
+</div></div>
 
-                <div class="form-group">
-                    <label for="salary">Your Annual Salary ($)</label>
-                    <input type="number" id="salary" placeholder="85000" min="20000" max="500000" required>
-                </div>
+<div class="step"><div class="step-content">
+<h2>Green Card Backlog</h2>
+<span class="stat">20+ Years</span>
+<p>For Indian workers — the wait is longer than a career.</p>
+</div></div>
 
-                <div class="form-group">
-                    <label for="years">Years on H-1B</label>
-                    <select id="years" required>
-                        <option value="1">1 year</option>
-                        <option value="2">2 years</option>
-                        <option value="3">3 years</option>
-                        <option value="4">4 years</option>
-                        <option value="5">5 years</option>
-                        <option value="6">6 years</option>
-                    </select>
-                </div>
+<div class="step"><div class="step-content">
+<h2>Total Cost</h2>
+<span class="stat">$500K+</span>
+<p>Lifetime cost of wage loss, mobility loss, and time.</p>
+</div></div>
 
-                <button type="submit" class="calc-button">Calculate My Cost</button>
-            </form>
+</article>
+</section>
 
-            <div class="result-box" id="result" role="alert" aria-live="polite">
-                <h3>Your Total H-1B Tax</h3>
-                <div class="result-value" id="resultValue">$0</div>
-                <p id="resultDesc"></p>
-                
-                <div class="result-breakdown">
-                    <div class="breakdown-item">
-                        <h4>Per Year</h4>
-                        <div class="value" id="perYear">$0</div>
-                    </div>
-                    <div class="breakdown-item">
-                        <h4>Per Month</h4>
-                        <div class="value" id="perMonth">$0</div>
-                    </div>
-                    <div class="breakdown-item">
-                        <h4>Equivalent To</h4>
-                        <div class="value" id="equivalent">0 homes</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+<script>
+const scroller = scrollama();
+const visuals = document.querySelectorAll(".vis");
 
-    <!-- OUTRO -->
-    <section class="outro">
-        <h2>The Hidden Bill</h2>
-        <p>The H-1B visa system extracts a heavy toll through wage suppression, geographic constraints, and employer lock-in.</p>
-        <p>This analysis of 2.4 million Department of Labor records reveals the true cost of "temporary" work status.</p>
-        
-        <a href="#" class="cta-button" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
-            Explore Again ↑
-        </a>
-        
-        <div class="credit">
-            <p><strong>Data & Analysis:</strong> [ADITYA]</p>
-            <p><strong>Methodology:</strong> Analysis of 2.4M LCA applications (FY 2020-2024)</p>
-            <div class="data-source">
-                <p><strong>Source:</strong> U.S. Department of Labor, Office of Foreign Labor Certification</p>
-                <p>All code and data available on request for verification</p>
-            </div>
-        </div>
-    </section>
+/* =====================
+   VISUAL FUNCTIONS
+===================== */
 
-    <script>
-        // ===== INITIALIZATION =====
-        const scroller = scrollama();
-        let currentStep = 0;
+// 1. Lottery
+function lottery() {
+  const svg = d3.select("#vis-lottery");
+  svg.selectAll("*").remove();
+  const data = d3.range(100).map(() => Math.random() < 0.11);
 
-        // ===== LOTTERY VISUALIZATION =====
-        function createLottery() {
-            const grid = document.getElementById('lotteryGrid');
-            grid.innerHTML = ''; // Clear existing
-            
-            for (let i = 0; i < 100; i++) {
-                const square = document.createElement('div');
-                square.className = 'lottery-square';
-                square.textContent = '?';
-                square.setAttribute('role', 'button');
-                square.setAttribute('aria-label', `Lottery square ${i + 1}`);
-                square.setAttribute('tabindex', '0');
-                
-                square.onclick = () => playLottery(square, i);
-                square.onkeydown = (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        playLottery(square, i);
-                    }
-                };
-                
-                grid.appendChild(square);
-            }
-        }
+  svg.selectAll("rect")
+    .data(data)
+    .enter()
+    .append("rect")
+    .attr("x", (d,i)=> (i%10)*55)
+    .attr("y", (d,i)=> Math.floor(i/10)*35)
+    .attr("width", 40)
+    .attr("height", 30)
+    .attr("rx", 6)
+    .attr("fill", d => d ? "#4ade80" : "#ff6b6b")
+    .attr("opacity",0)
+    .transition().delay((d,i)=>i*10).attr("opacity",1);
+}
 
-        function playLottery(square, index) {
-            if (square.classList.contains('rejected') || square.classList.contains('selected')) {
-                return; // Already played
-            }
-            
-            const isWinner = Math.random() < 0.11;
-            square.className = isWinner ? 'lottery-square selected' : 'lottery-square rejected';
-            square.textContent = isWinner ? '✓' : '✗';
-            square.setAttribute('aria-label', isWinner ? 'Winner!' : 'Rejected');
-            
-            // Play all after first click
-            if (index === 0) {
-                setTimeout(() => playAllLottery(), 500);
-            }
-        }
+// 2. Wage chart
+function wage() {
+  const svg = d3.select("#vis-wage");
+  svg.selectAll("*").remove();
 
-        function playAllLottery() {
-            const squares = document.querySelectorAll('.lottery-square');
-            squares.forEach((square, i) => {
-                if (i > 0 && !square.classList.contains('rejected') && !square.classList.contains('selected')) {
-                    setTimeout(() => playLottery(square, i), i * 20);
-                }
-            });
-        }
+  const data = [
+    {label:"Product", value:150000},
+    {label:"Staffing", value:99050}
+  ];
 
-        // ===== WAGE CHART =====
-        function createWageChart() {
-            const svg = d3.select('#wageChart');
-            svg.selectAll('*').remove(); // Clear existing
-            
-            const margin = { top: 60, right: 40, bottom: 80, left: 100 };
-            const width = 650 - margin.left - margin.right;
-            const height = 450 - margin.top - margin.bottom;
+  const x = d3.scaleBand().domain(data.map(d=>d.label)).range([80,520]).padding(0.4);
+  const y = d3.scaleLinear().domain([0,160000]).range([350,50]);
 
-            const g = svg.append('g')
-                .attr('transform', `translate(${margin.left},${margin.top})`);
+  svg.selectAll("rect")
+    .data(data)
+    .enter().append("rect")
+    .attr("x", d=>x(d.label))
+    .attr("y", 350)
+    .attr("width", x.bandwidth())
+    .attr("height",0)
+    .attr("fill", d=>d.label==="Product"? "#4ade80":"#ff6b6b")
+    .transition().duration(800)
+    .attr("y", d=>y(d.value))
+    .attr("height", d=>350-y(d.value));
 
-            const data = [
-                { type: 'Product\nCompanies', wage: 150000, color: '#51cf66', label: 'Product Companies' },
-                { type: 'Staffing\nFirms', wage: 99050, color: '#ff6b6b', label: 'Staffing Firms' }
-            ];
+  svg.append("text")
+    .attr("x",300).attr("y",40)
+    .attr("text-anchor","middle")
+    .attr("fill","#93a5ff")
+    .text("~$51K/year wage suppression");
+}
 
-            const x = d3.scaleBand()
-                .domain(data.map(d => d.type))
-                .range([0, width])
-                .padding(0.4);
+// 3. US Map
+function map() {
+  const svg = d3.select("#vis-map");
+  svg.selectAll("*").remove();
 
-            const y = d3.scaleLinear()
-                .domain([0, 170000])
-                .range([height, 0]);
+  const projection = d3.geoAlbersUsa().translate([300,210]).scale(700);
+  const path = d3.geoPath(projection);
 
-            // Animated bars
-            g.selectAll('.bar')
-                .data(data)
-                .enter().append('rect')
-                .attr('class', 'bar')
-                .attr('x', d => x(d.type))
-                .attr('width', x.bandwidth())
-                .attr('y', height)
-                .attr('height', 0)
-                .attr('fill', d => d.color)
-                .attr('rx', 8)
-                .transition()
-                .duration(1000)
-                .delay((d, i) => i * 200)
-                .attr('y', d => y(d.wage))
-                .attr('height', d => height - y(d.wage));
+  const values = {CA:24.5, TX:11.2, NY:8.3, NJ:4.8, WA:3.2};
+  const color = d3.scaleSequential(d3.interpolateBlues).domain([0,25]);
 
-            // Value labels
-            g.selectAll('.value-label')
-                .data(data)
-                .enter().append('text')
-                .attr('class', 'value-label')
-                .attr('x', d => x(d.type) + x.bandwidth() / 2)
-                .attr('y', d => y(d.wage) - 15)
-                .attr('text-anchor', 'middle')
-                .attr('fill', '#fff')
-                .style('font-size', '18px')
-                .style('font-weight', 'bold')
-                .text(d => `$${(d.wage / 1000).toFixed(0)}K`)
-                .style('opacity', 0)
-                .transition()
-                .duration(500)
-                .delay(1200)
-                .style('opacity', 1);
+  d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json")
+    .then(us=>{
+      svg.append("g")
+        .selectAll("path")
+        .data(topojson.feature(us, us.objects.states).features)
+        .join("path")
+        .attr("d", path)
+        .attr("fill", d=>color(values[d.properties.code]||1))
+        .attr("stroke","#111");
+    });
+}
 
-            // Gap annotation
-            g.append('line')
-                .attr('x1', x('Staffing\nFirms') + x.bandwidth() / 2)
-                .attr('x2', x('Product\nCompanies') + x.bandwidth() / 2)
-                .attr('y1', y(99050))
-                .attr('y2', y(99050))
-                .attr('stroke', '#ff6b6b')
-                .attr('stroke-width', 2)
-                .attr('stroke-dasharray', '5,5')
-                .style('opacity', 0)
-                .transition()
-                .duration(500)
-                .delay(1500)
-                .style('opacity', 0.6);
+// Remaining visuals (simple but effective)
+function simpleText(id,text){
+  const svg=d3.select(id);
+  svg.selectAll("*").remove();
+  svg.append("text")
+    .attr("x",300).attr("y",200)
+    .attr("text-anchor","middle")
+    .attr("font-size","28px")
+    .attr("fill","#ff6b6b")
+    .text(text);
+}
 
-            g.append('text')
-                .attr('x', width / 2)
-                .attr('y', y(99050) - 10)
-                .attr('text-anchor', 'middle')
-                .attr('fill', '#ff6b6b')
-                .style('font-size', '16px')
-                .style('font-weight', 'bold')
-                .text('$50,950 gap')
-                .style('opacity', 0)
-                .transition()
-                .duration(500)
-                .delay(1500)
-                .style('opacity', 1);
+/* =====================
+   SCROLL HANDLER
+===================== */
+function onStepEnter(r){
+  visuals.forEach(v=>v.classList.remove("active"));
+  const i = r.index;
+  visuals[i].classList.add("active");
 
-            // Axes
-            g.append('g')
-                .attr('class', 'axis')
-                .attr('transform', `translate(0,${height})`)
-                .call(d3.axisBottom(x))
-                .selectAll('text')
-                .style('font-size', '14px')
-                .attr('dy', '1em');
+  if(i===0) lottery();
+  if(i===1) wage();
+  if(i===2) map();
+  if(i===3) simpleText("#vis-control","Market locked by employers");
+  if(i===4) simpleText("#vis-clock","60-Day Countdown");
+  if(i===5) simpleText("#vis-gc","Green Card Backlog");
+  if(i===6) simpleText("#vis-total","$500,000+ lifetime cost");
+}
 
-            g.append('g')
-                .attr('class', 'axis')
-                .call(d3.axisLeft(y)
-                    .tickFormat(d => `$${d/1000}K`)
-                    .ticks(8));
+scroller.setup({ step: ".step", offset: 0.5 }).onStepEnter(onStepEnter);
+</script>
 
-            // Y-axis label
-            g.append('text')
-                .attr('transform', 'rotate(-90)')
-                .attr('x', -height / 2)
-                .attr('y', -60)
-                .attr('text-anchor', 'middle')
-                .attr('fill', 'var(--text-secondary)')
-                .style('font-size', '14px')
-                .text('Median Annual Salary');
-        }
-
-        // ===== US MAP VISUALIZATION =====
-        function createUSMap() {
-            // State percentages based on your data
-            const stateData = {
-                'California': 24.5,
-                'Texas': 11.2,
-                'New York': 8.3,
-                'New Jersey': 4.8,
-                'Washington': 3.2,
-                'Illinois': 2.8,
-                'Massachusetts': 2.5,
-                'Virginia': 2.1,
-                'Georgia': 1.9,
-                'Florida': 1.8,
-                'Pennsylvania': 1.5,
-                'Maryland': 1.3,
-                'Michigan': 1.1,
-                'North Carolina': 1.0,
-                'Ohio': 0.9
-            };
-
-            const svg = d3.select('#usMap');
-            svg.selectAll('*').remove();
-
-            const width = 650;
-            const height = 500;
-
-            const projection = d3.geoAlbersUsa()
-                .scale(850)
-                .translate([width / 2, height / 2]);
-
-            const path = d3.geoPath().projection(projection);
-
-            const colorScale = d3.scaleThreshold()
-                .domain([1, 5, 10])
-                .range(['#495057', '#748ffc', '#fa5252', '#ff6b6b']);
-
-            // Load and render US states (using a simplified TopoJSON)
-            // For production, you'd load actual TopoJSON data
-            // This is a placeholder that shows the structure
-            
-            const g = svg.append('g');
-
-            // Simplified approach: render rectangles as placeholders
-            // In production, use: d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
-            
-            // For now, create a simple text-based visualization
-            const topStates = [
-                { name: 'CA', value: 24.5, x: 100, y: 250 },
-                { name: 'TX', value: 11.2, x: 300, y: 350 },
-                { name: 'NY', value: 8.3, x: 520, y: 150 },
-                { name: 'NJ', value: 4.8, x: 540, y: 180 },
-                { name: 'WA', value: 3.2, x: 80, y: 80 }
-            ];
-
-            topStates.forEach(state => {
-                const size = Math.sqrt(state.value) * 30;
-                
-                g.append('circle')
-                    .attr('cx', state.x)
-                    .attr('cy', state.y)
-                    .attr('r', 0)
-                    .attr('fill', colorScale(state.value))
-                    .attr('opacity', 0.8)
-                    .attr('stroke', '#fff')
-                    .attr('stroke-width', 2)
-                    .transition()
-                    .duration(1000)
-                    .attr('r', size);
-
-                g.append('text')
-                    .attr('x', state.x)
-                    .attr('y', state.y)
-                    .attr('text-anchor', 'middle')
-                    .attr('dy', '0.35em')
-                    .attr('fill', '#fff')
-                    .style('font-size', '16px')
-                    .style('font-weight', 'bold')
-                    .text(state.name)
-                    .style('opacity', 0)
-                    .transition()
-                    .duration(500)
-                    .delay(1000)
-                    .style('opacity', 1);
-
-                g.append('text')
-                    .attr('x', state.x)
-                    .attr('y', state.y + 20)
-                    .attr('text-anchor', 'middle')
-                    .attr('fill', '#fff')
-                    .style('font-size', '14px')
-                    .text(`${state.value}%`)
-                    .style('opacity', 0)
-                    .transition()
-                    .duration(500)
-                    .delay(1200)
-                    .style('opacity', 0.9);
-            });
-        }
-
-        // ===== EMPLOYER CHART =====
-        function createEmployerChart() {
-            const svg = d3.select('#employerChart');
-            svg.selectAll('*').remove();
-            
-            const width = 650;
-            const height = 500;
-            const radius = Math.min(width, height) / 2 - 60;
-
-            const g = svg.append('g')
-                .attr('transform', `translate(${width/2},${height/2})`);
-
-            const data = [
-                { label: 'Top 100\nEmployers', value: 30.6, color: '#ff6b6b' },
-                { label: 'All Other\nEmployers', value: 69.4, color: '#495057' }
-            ];
-
-            const pie = d3.pie()
-                .value(d => d.value)
-                .sort(null)
-                .startAngle(-Math.PI / 2);
-
-            const arc = d3.arc()
-                .innerRadius(radius * 0.6)
-                .outerRadius(radius);
-
-            const arcs = g.selectAll('arc')
-                .data(pie(data))
-                .enter().append('g');
-
-            // Animated arcs
-            arcs.append('path')
-                .attr('fill', d => d.data.color)
-                .attr('stroke', '#0a0e27')
-                .attr('stroke-width', 4)
-                .transition()
-                .duration(1000)
-                .attrTween('d', function(d) {
-                    const interpolate = d3.interpolate({ startAngle: d.startAngle, endAngle: d.startAngle }, d);
-                    return function(t) {
-                        return arc(interpolate(t));
-                    };
-                });
-
-            // Labels
-            arcs.append('text')
-                .attr('transform', d => `translate(${arc.centroid(d)})`)
-                .attr('text-anchor', 'middle')
-                .attr('fill', '#fff')
-                .style('font-size', '24px')
-                .style('font-weight', 'bold')
-                .text(d => `${d.data.value}%`)
-                .style('opacity', 0)
-                .transition()
-                .duration(500)
-                .delay(1200)
-                .style('opacity', 1);
-
-            // Center text
-            g.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('dy', '-0.5em')
-                .attr('fill', '#fff')
-                .style('font-size', '20px')
-                .style('font-weight', 'bold')
-                .text('Market')
-                .style('opacity', 0)
-                .transition()
-                .duration(500)
-                .delay(1500)
-                .style('opacity', 1);
-
-            g.append('text')
-                .attr('text-anchor', 'middle')
-                .attr('dy', '1em')
-                .attr('fill', '#fff')
-                .style('font-size', '20px')
-                .style('font-weight', 'bold')
-                .text('Control')
-                .style('opacity', 0)
-                .transition()
-                .duration(500)
-                .delay(1500)
-                .style('opacity', 1);
-        }
-
-        // ===== CALCULATOR =====
-        function calculate(event) {
-            if (event) event.preventDefault();
-            
-            const empType = document.getElementById('empType').value;
-            const salary = parseInt(document.getElementById('salary').value);
-            const years = parseInt(document.getElementById('years').value);
-
-            if (!empType || !salary) {
-                alert('Please fill in all fields');
-                return;
-            }
-
-            const PRODUCT_MEDIAN = 150000;
-            const STAFFING_MEDIAN = 99050;
-
-            let cost = 0;
-            let desc = '';
-
-            if (empType === 'staffing') {
-                const gap = Math.max(0, PRODUCT_MEDIAN - salary);
-                cost = gap * years;
-                desc = `Working at a staffing firm, you're earning $${gap.toLocaleString()} less per year than product company employees. Over ${years} years, that's $${cost.toLocaleString()} in lost wages due to limited job mobility.`;
-            } else if (empType === 'product') {
-                const gap = Math.max(0, PRODUCT_MEDIAN - salary);
-                cost = gap * years;
-                if (gap === 0) {
-                    desc = `You're at the top of the H-1B wage spectrum! However, you still face the "golden handcuffs" of employer lock-in, which research shows suppresses wages by 4.7% compared to citizens with full job mobility.`;
-                } else {
-                    desc = `Even at a product company, you're earning $${gap.toLocaleString()} below the median. Over ${years} years, that's $${cost.toLocaleString()} in potential lost wages.`;
-                }
-            } else {
-                const median = (PRODUCT_MEDIAN + STAFFING_MEDIAN) / 2;
-                const gap = Math.max(0, median - salary);
-                cost = gap * years;
-                desc = `Compared to the H-1B market median of $${Math.round(median).toLocaleString()}, you're earning $${gap.toLocaleString()} less per year. Over ${years} years, that's $${cost.toLocaleString()}.`;
-            }
-
-            // Update results
-            document.getElementById('resultValue').textContent = `$${cost.toLocaleString()}`;
-            document.getElementById('resultDesc').textContent = desc;
-            document.getElementById('perYear').textContent = `$${Math.round(cost / years).toLocaleString()}`;
-            document.getElementById('perMonth').textContent = `$${Math.round(cost / (years * 12)).toLocaleString()}`;
-            
-            const homes = (cost
+</body>
+</html>
